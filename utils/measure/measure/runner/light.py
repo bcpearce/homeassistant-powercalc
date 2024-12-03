@@ -23,7 +23,12 @@ from measure.powermeter.errors import (
     PowerMeterError,
     ZeroReadingError,
 )
-from measure.runner.const import QUESTION_COLOR_MODE, QUESTION_GZIP, QUESTION_MULTIPLE_LIGHTS, QUESTION_NUM_LIGHTS
+from measure.runner.const import (
+    QUESTION_COLOR_MODE,
+    QUESTION_GZIP,
+    QUESTION_MULTIPLE_LIGHTS,
+    QUESTION_NUM_LIGHTS,
+)
 from measure.runner.errors import RunnerError
 from measure.runner.runner import MeasurementRunner, RunnerResult
 from measure.util.measure_util import MeasureUtil
@@ -73,21 +78,33 @@ class LightRunner(MeasurementRunner):
     def get_export_directory(self) -> str:
         return f"{self.light_info.model_id}"
 
-    def run(self, answers: dict[str, Any], export_directory: str) -> RunnerResult | None:
-        measurements_to_run = [self.prepare_measurements_for_color_mode(export_directory, color_mode) for color_mode in self.color_modes]
+    def run(
+        self, answers: dict[str, Any], export_directory: str
+    ) -> RunnerResult | None:
+        measurements_to_run = [
+            self.prepare_measurements_for_color_mode(export_directory, color_mode)
+            for color_mode in self.color_modes
+        ]
 
         all_variations: list[Variation] = []
         for measurement in measurements_to_run:
             all_variations.extend(measurement.variations)
         left_variations = all_variations.copy()
 
-        [self.run_color_mode(answers, measurement_info, all_variations, left_variations) for measurement_info in measurements_to_run]
+        [
+            self.run_color_mode(
+                answers, measurement_info, all_variations, left_variations
+            )
+            for measurement_info in measurements_to_run
+        ]
 
         return RunnerResult(
             model_json_data={"calculation_strategy": "lut"},
         )
 
-    def prepare_measurements_for_color_mode(self, export_directory: str, color_mode: ColorMode) -> MeasurementRunInput:
+    def prepare_measurements_for_color_mode(
+        self, export_directory: str, color_mode: ColorMode
+    ) -> MeasurementRunInput:
         """Fetch all variations for the given color mode and prepare the measurement session."""
 
         csv_file_path = f"{export_directory}/{color_mode.value}.csv"
@@ -149,8 +166,13 @@ class LightRunner(MeasurementRunner):
             previous_variation = None
             for count, variation in enumerate(variations):
                 if count % 10 == 0:
-                    time_left = self.calculate_time_left(all_variations, left_variations, variation)
-                    progress_percentage = ((len(all_variations) - len(left_variations)) / len(all_variations)) * 100
+                    time_left = self.calculate_time_left(
+                        all_variations, left_variations, variation
+                    )
+                    progress_percentage = (
+                        (len(all_variations) - len(left_variations))
+                        / len(all_variations)
+                    ) * 100
                     _LOGGER.info(
                         "Progress: %d%%, Estimated time left: %s",
                         progress_percentage,
@@ -164,15 +186,27 @@ class LightRunner(MeasurementRunner):
                     **asdict(variation),
                 )
 
-                if previous_variation and isinstance(variation, ColorTempVariation) and variation.ct < previous_variation.ct:
+                if (
+                    previous_variation
+                    and isinstance(variation, ColorTempVariation)
+                    and variation.ct < previous_variation.ct
+                ):
                     _LOGGER.info("Extra waiting for significant CT change...")
                     time.sleep(self.config.sleep_time_ct)
 
-                if previous_variation and isinstance(variation, HsVariation) and variation.sat < previous_variation.sat:
+                if (
+                    previous_variation
+                    and isinstance(variation, HsVariation)
+                    and variation.sat < previous_variation.sat
+                ):
                     _LOGGER.info("Extra waiting for significant SAT change...")
                     time.sleep(self.config.sleep_time_sat)
 
-                if previous_variation and isinstance(variation, HsVariation) and variation.hue < previous_variation.hue:
+                if (
+                    previous_variation
+                    and isinstance(variation, HsVariation)
+                    and variation.hue < previous_variation.hue
+                ):
                     _LOGGER.info("Extra waiting for significant HUE change...")
                     time.sleep(self.config.sleep_time_hue)
 
@@ -338,9 +372,15 @@ class LightRunner(MeasurementRunner):
         time_left = 0
         if progress == 0:
             time_left += self.config.sleep_standby + self.config.sleep_initial
-        time_left += num_variations_left * (self.config.sleep_time + estimated_step_delay)
+        time_left += num_variations_left * (
+            self.config.sleep_time + estimated_step_delay
+        )
         if self.config.sample_count > 1:
-            time_left += num_variations_left * self.config.sample_count * (self.config.sleep_time_sample + estimated_step_delay)
+            time_left += (
+                num_variations_left
+                * self.config.sample_count
+                * (self.config.sleep_time_sample + estimated_step_delay)
+            )
 
         color_mode_time_calculation = {
             ColorMode.HS: self.calculate_hs_time_left,
@@ -351,9 +391,15 @@ class LightRunner(MeasurementRunner):
         time_left += color_mode_time_calculation[current_color_mode](current_variation)
 
         # Add timings for color modes which needs to be fully measured
-        left_color_modes = {self.get_color_mode(variation) for variation in left_variations}
+        left_color_modes = {
+            self.get_color_mode(variation) for variation in left_variations
+        }
 
-        time_left += sum(color_mode_time_calculation[mode](None) for mode in left_color_modes if mode not in current_color_mode)
+        time_left += sum(
+            color_mode_time_calculation[mode](None)
+            for mode in left_color_modes
+            if mode not in current_color_mode
+        )
 
         return self.format_time_left(time_left)
 
@@ -368,7 +414,9 @@ class LightRunner(MeasurementRunner):
 
     def calculate_hs_time_left(self, current_variation: HsVariation | None) -> float:
         """Calculate the time left for the HS color mode."""
-        brightness = current_variation.bri if current_variation else self.config.min_brightness
+        brightness = (
+            current_variation.bri if current_variation else self.config.min_brightness
+        )
         sat_steps_left = (
             round(
                 (self.config.max_brightness - brightness) / self.config.hs_bri_steps,
@@ -382,9 +430,13 @@ class LightRunner(MeasurementRunner):
         time_left += hue_steps_left * self.config.sleep_time_hue
         return time_left
 
-    def calculate_ct_time_left(self, current_variation: ColorTempVariation | None) -> float:
+    def calculate_ct_time_left(
+        self, current_variation: ColorTempVariation | None
+    ) -> float:
         """Calculate the time left for the HS color mode."""
-        brightness = current_variation.bri if current_variation else self.config.min_brightness
+        brightness = (
+            current_variation.bri if current_variation else self.config.min_brightness
+        )
         ct_steps_left = (
             round(
                 (self.config.max_brightness - brightness) / self.config.ct_bri_steps,
@@ -495,7 +547,9 @@ class LightRunner(MeasurementRunner):
             )
         return should_resume
 
-    def get_resume_variation(self, csv_file_path: str, color_mode: ColorMode) -> Variation | None:
+    def get_resume_variation(
+        self, csv_file_path: str, color_mode: ColorMode
+    ) -> Variation | None:
         """This method returns the variation to resume at.
 
         It reads the last row from the CSV file and converts it into a Variation object.
