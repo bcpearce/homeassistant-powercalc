@@ -1,0 +1,14 @@
+{
+  "calculation_strategy": "lut",
+  "created_at": "2024-12-02T23:10:48.930163",
+  "measure_description": "Measured with utils/measure script",
+  "measure_device": "Shelly PM Mini Gen3",
+  "measure_method": "script",
+  "measure_settings": {
+    "SAMPLE_COUNT": 2,
+    "SLEEP_TIME": 1,
+    "VERSION": "master"
+  },
+  "name": "Cree Lighting Connected Max 60-Watt EQ A19 Tunable White E26 Dimmable Smart Light Bulb",
+  "standby_power": 0
+}
